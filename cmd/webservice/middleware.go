@@ -32,6 +32,11 @@ func setRequestTraceIdHeader() func(http.Handler) http.Handler {
 func setRequestContextLogger(logger *zerolog.Logger, logWithTraceId bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if logger == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			log := *logger
 			if logWithTraceId {
 				traceId := r.Header.Get(requestTraceHeaderKey)
