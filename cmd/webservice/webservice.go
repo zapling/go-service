@@ -13,6 +13,8 @@ import (
 
 var addr = ":3000"
 
+// Run starts the http server while listening for a context cancelation on the provided
+// context. If the context is cancelled it will try and gracefully shutdown the http server.
 func Run(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
@@ -34,7 +36,7 @@ func Run(ctx context.Context) error {
 		log.Info().Msgf("Starting http server on %s", addr)
 		err := httpServer.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Err(err).Msg("Error while trying to serve")
+			log.Fatal().Err(err).Msg("Error while trying to serve")
 		}
 	}()
 
@@ -58,8 +60,9 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func attachMiddleware(r http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
-	var handler http.Handler = r
+// attachMiddleware wraps the provided middleware functions around the provided root handler.
+func attachMiddleware(root http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	var handler http.Handler = root
 	for _, middleware := range middlewares {
 		handler = middleware(handler)
 	}
