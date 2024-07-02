@@ -31,6 +31,7 @@ func newRouter(ctx context.Context) (http.Handler, error) {
 	return attachMiddleware(
 		r,
 		setRequestTraceIdHeader(),
+		logAccess(log),
 		setRequestContextLogger(log, true),
 		setResponseCORSHeaders(
 			[]string{localhostOrigin, "https://mywebsitedomain.com"},

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -46,6 +48,86 @@ func setRequestContextLogger(logger *zerolog.Logger, logWithTraceId bool) func(h
 			}
 			ctx := log.WithContext(r.Context())
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
+}
+
+// logAccess logs every incoming request and outgoing response.
+//
+// Any unrecovered panics will be logged as error with the corresponding stack trace.
+//
+// The log level for the response log is determined by the status code of the response.
+// Default: Info
+// 100 - 199: Debug
+// 200 - 399: Info
+// 400 - 499: Warn
+// 500 - 599: Error
+// No status code: Error
+func logAccess(logger *zerolog.Logger) func(http.Handler) http.Handler {
+
+	getLogEvent := func(statusCode int) *zerolog.Event {
+		switch statusCode := statusCode; {
+		case statusCode == 0:
+			return logger.Error()
+		case statusCode >= 100 && statusCode <= 199:
+			return logger.Debug()
+		case statusCode >= 200 && statusCode <= 399:
+			return logger.Info()
+		case statusCode >= 400 && statusCode <= 499:
+			return logger.Warn()
+		case statusCode >= 500 && statusCode <= 599:
+			return logger.Error()
+		default:
+			return logger.Info()
+		}
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+
+			lrw := &loggingResponseWriter{ResponseWriter: w}
+
+			logger.Info().
+				Fields(map[string]any{
+					"url":        r.URL.Path,
+					"proto":      r.Proto,
+					"method":     r.Method,
+					"remote-ip":  r.RemoteAddr,
+					"user-agent": r.Header.Get("User-Agent"),
+					"trace-id":   r.Header.Get(requestTraceHeaderKey),
+				}).Msg("Incoming request")
+
+			defer func() {
+				end := time.Now()
+
+				if rec := recover(); rec != nil {
+					logger.Error().
+						Interface("recover-info", rec).
+						Bytes("stack-trace", debug.Stack()).
+						Str("trace-id", r.Header.Get(requestTraceHeaderKey)).
+						Msg("Panic while handling incoming request")
+				}
+
+				log := getLogEvent(lrw.statusCode)
+				log.Fields(map[string]any{
+					"status":     lrw.statusCode,
+					"trace-id":   r.Header.Get(requestTraceHeaderKey),
+					"latency-ms": float64(end.Sub(start).Nanoseconds()) / 1000000.0,
+				}).Msg("Outgoing response")
+			}()
+
+			next.ServeHTTP(lrw, r)
 		})
 	}
 }
