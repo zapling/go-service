@@ -15,7 +15,7 @@ func New(conn dbOrTx) *Client {
 	}
 	c := &Client{conn: conn}
 	c.Foo = fooClient{client: c}
-	return &Client{conn: conn}
+	return c
 }
 
 // Client holds the database interaction logic.
