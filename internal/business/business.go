@@ -30,7 +30,7 @@ func (c *Client) CreateFoo(ctx context.Context, bar string) error {
 	}
 
 	defer func() {
-		if err := tx.Rollback(context.Background()); err != nil && errors.Is(err, pgx.ErrTxClosed) {
+		if err := tx.Rollback(context.Background()); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
 			log.Err(err).Msg("Failed to rollback db transaction")
 		}
 	}()
