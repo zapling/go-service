@@ -19,7 +19,7 @@ var addr = ":3000"
 func Run(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
-	router, err := newRouter(ctx)
+	router, err := NewRouter(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get router: %w", err)
 	}

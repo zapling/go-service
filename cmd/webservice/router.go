@@ -10,12 +10,12 @@ import (
 	"github.com/zapling/go-service/internal/business"
 )
 
-// newRouter creates a new http mux with any routes that it needs.
+// NewRouter creates a new http mux with any routes that it needs.
 // Any dependencies you might need inside your handlers should be instantiated here
 // e.g database connection, queue connection etc
 // Use environment variables or mounted secrets (k8s) to access the credentials you
 // might need.
-func newRouter(ctx context.Context) (http.Handler, error) {
+func NewRouter(ctx context.Context) (http.Handler, error) {
 	log := zerolog.Ctx(ctx)
 
 	db, err := getDatabaseConn(ctx, os.Getenv("DATABASE_URL"))
