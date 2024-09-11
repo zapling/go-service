@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 
@@ -12,6 +13,19 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/zapling/go-service/cmd/webservice/handler"
 )
+
+// attachMiddleware wraps the provided middleware functions around the provided root handler.
+func attachMiddleware(root http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	var handler http.Handler = root
+
+	// Reverse middleware order so we wrap them in the order they where defined.
+	slices.Reverse(middlewares)
+
+	for _, middleware := range middlewares {
+		handler = middleware(handler)
+	}
+	return handler
+}
 
 const requestTraceHeaderKey = "x-trace-id"
 

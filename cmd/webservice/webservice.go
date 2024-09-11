@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"sync"
 	"time"
 
@@ -59,17 +58,4 @@ func Run(ctx context.Context) error {
 	wg.Wait()
 
 	return nil
-}
-
-// attachMiddleware wraps the provided middleware functions around the provided root handler.
-func attachMiddleware(root http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
-	var handler http.Handler = root
-
-	// Reverse middleware order so we wrap them in the order they where defined.
-	slices.Reverse(middlewares)
-
-	for _, middleware := range middlewares {
-		handler = middleware(handler)
-	}
-	return handler
 }
