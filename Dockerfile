@@ -1,5 +1,5 @@
 # Build
-FROM golang:1.22 AS build
+FROM golang:1.23 AS build
 
 WORKDIR /build
 
@@ -8,7 +8,7 @@ COPY ./ .
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 
-RUN go build -mod vendor -o binary ./cmd/main.go
+RUN go build -o binary ./cmd/main.go
 
 # Migrations
 FROM amacneil/dbmate:2.14 AS dbmate
