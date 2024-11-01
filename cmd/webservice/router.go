@@ -33,6 +33,7 @@ func NewRouter(ctx context.Context) (http.Handler, error) {
 		setRequestTraceIdHeader(),
 		logAccess(log),
 		setRequestContextLogger(log, true),
+		recoverFromPanic(log),
 		setResponseCORSHeaders(
 			[]string{localhostOrigin, "https://mywebsitedomain.com"},
 			[]string{"content-type", "authorization"},

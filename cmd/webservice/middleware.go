@@ -124,15 +124,6 @@ func logAccess(logger *zerolog.Logger) func(http.Handler) http.Handler {
 
 			defer func() {
 				end := time.Now()
-
-				if rec := recover(); rec != nil {
-					logger.Error().
-						Interface("recover-info", rec).
-						Bytes("stack-trace", debug.Stack()).
-						Str("trace-id", r.Header.Get(requestTraceHeaderKey)).
-						Msg("Panic while handling incoming request")
-				}
-
 				log := getLogEvent(lrw.statusCode)
 				log.Fields(map[string]any{
 					"status":     lrw.statusCode,
@@ -142,6 +133,32 @@ func logAccess(logger *zerolog.Logger) func(http.Handler) http.Handler {
 			}()
 
 			next.ServeHTTP(lrw, r)
+		})
+	}
+}
+
+func recoverFromPanic(logger *zerolog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				rec := recover()
+				if rec != nil {
+					if rec == http.ErrAbortHandler {
+						panic(rec)
+					}
+
+					logger.Error().
+						Interface("recover-info", rec).
+						Bytes("stack-trace", debug.Stack()).
+						Str("trace-id", r.Header.Get(requestTraceHeaderKey)).
+						Msg("Panic while handling incoming request")
+
+					if r.Header.Get("Connection") != "Upgrade" {
+						w.WriteHeader(http.StatusInternalServerError)
+					}
+				}
+			}()
+			next.ServeHTTP(w, r)
 		})
 	}
 }
