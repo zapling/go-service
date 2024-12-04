@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/rs/zerolog"
 	"github.com/zapling/go-service/cmd/webservice"
 )
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
