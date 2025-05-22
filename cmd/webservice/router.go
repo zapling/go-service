@@ -45,5 +45,8 @@ func NewRouter(ctx context.Context) (http.Handler, error) {
 
 // attachRoutes attaches routes to the provided http mux.
 func attachRoutes(r *http.ServeMux, bc *business.Client) {
+	r.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	r.Handle("GET /foo", handler.Foo(bc))
 }
